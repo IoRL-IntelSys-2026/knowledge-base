@@ -1,0 +1,140 @@
+[build-system]
+requires = ["setuptools==84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-evaluator"
+version = "1.0.0"
+description = "Evaluate a RAG system using example questions and answers"
+readme = "README.md"
+requires-python = ">=3.14"
+license = "GPL-3.0-or-later"
+keywords = ["llm", "rag", "ragas", "llm-judge"]
+
+authors = [
+    { name = "asdftowel" },
+    { name = "Retro1290" },
+    { name = "SofyaG-2004" },
+    { name = "kseniiabubukina" },
+]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: GPU",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Natural Language :: Russian",
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "ragas==0.4.4",
+]
+
+[project.urls]
+Issues = "https://github.com/IoRL-IntelSys-2026/knowledge-base/issues"
+Repository = "https://github.com/IoRL-IntelSys-2026/knowledge-base.git"
+
+[project.scripts]
+rag-evaluator = "evaluator:main"
+
+[tool.mypy]
+strict = true
+
+[tool.ruff]
+line-length = 80
+output-prefer-rule-codes = true
+show-fixes = true
+
+[tool.ruff.format]
+docstring-code-format = true
+line-ending = "lf"
+
+[tool.ruff.lint]
+extend-select = [
+    "A",
+    "ANN",
+    "ASYNC",
+    "B",
+    "C",
+    "D1",
+    "D2",
+    "D3",
+    "D402",
+    "D403",
+    "D405",
+    "D406",
+    "D407",
+    "D408",
+    "D409",
+    "D414",
+    "D415",
+    "D417",
+    "D420",
+    "DOC",
+    "DTZ",
+    "EM",
+    "FIX",
+    "G",
+    "ISC001",
+    "ISC003",
+    "LOG",
+    "PERF",
+    "PIE",
+    "PLC0415",
+    "PLC1802",
+    "PLC1901",
+    "PLC2401",
+    "PLC2403",
+    "PLC2701",
+    "PLC2801",
+    "PT",
+    "PTH",
+    "PYI",
+    "RUF036",
+    "RUF037",
+    "RUF038",
+    "RUF039",
+    "RUF043",
+    "RUF045",
+    "RUF052",
+    "RUF102",
+    "RUF103",
+    "RUF104",
+    "RUF105",
+    "S",
+    "SIM",
+    "SLOT",
+    "TC",
+    "TID",
+    "TRY",
+    "YTT",
+]
+preview = true
+
+exclude = [
+    "D202",
+    "D212",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/test*.py" = ["S101"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[project.optional-dependencies]
+devel = [
+    "pytest==9.2.0",
+    "mypy==2.4.1",
+    "ruff==0.17.3",
+    "build==1.6.1",
+]
