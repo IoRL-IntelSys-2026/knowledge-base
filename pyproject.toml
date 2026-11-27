@@ -82,6 +82,7 @@ extend-select = [
     "DOC",
     "DTZ",
     "EM",
+    "FBT",
     "FIX",
     "G",
     "ISC001",
