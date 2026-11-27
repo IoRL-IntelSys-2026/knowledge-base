@@ -5,15 +5,16 @@ import asyncio
 import datetime as dt
 from os import environ
 from pathlib import Path
-from typing import Final, NamedTuple
+from typing import Final, NamedTuple, cast
 from urllib.parse import urlsplit, urlunsplit
 
 environ["RAGAS_DO_NOT_TRACK"] = "true"
 
 from openai import AsyncOpenAI
+from pydantic import BaseModel
 from ragas import Dataset, experiment
 from ragas.cache import DiskCacheBackend
-from ragas.embeddings.base import embedding_factory
+from ragas.embeddings.base import BaseRagasEmbedding, embedding_factory
 from ragas.llms import llm_factory
 from ragas.metrics.collections import (
     AnswerCorrectness,
@@ -32,6 +33,13 @@ class MetricGroup(NamedTuple):
     precision: ContextPrecision
     recall: ContextRecall
     faithfulness: Faithfulness
+
+
+class EvalRow(BaseModel):
+    """Формат тестового датасета."""
+
+    user_input: str
+    reference: str
 
 
 def parse_args(
@@ -158,19 +166,25 @@ async def run_rag(
 def main() -> None:
     """Точка входа в скрипт. Собирает аргументы и запускает проверку RAG."""
     args: Final = parse_args(None)
-    dataset: Final[Dataset[Dataset.DATATABLE_TYPE]] = Dataset(
+    dataset: Final[Dataset[EvalRow]] = Dataset(
         name=args.dataset.stem,
         backend="local/csv",
         root_dir=args.dataset.parent,
+        data_model=EvalRow,
     )
     client: Final = AsyncOpenAI(base_url=args.address, api_key="ollama")
+    cache: Final = DiskCacheBackend(
+        str(Path(__file__).parents[2] / ".ragas_cache")
+    )
     llm: Final = llm_factory(
         args.model,
         # FIXME: какой формат? OpenAI?
         client=client,
-        cache=DiskCacheBackend(str(Path(__file__).parents[2] / ".ragas_cache")),
+        cache=cache,
     )
-    embeddings: Final = embedding_factory(client=client)
+    embeddings: Final = cast(
+        "BaseRagasEmbedding", embedding_factory(client=client, cache=cache)
+    )
     asyncio.run(
         run_rag.arun(
             dataset,
