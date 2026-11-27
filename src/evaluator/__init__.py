@@ -13,6 +13,7 @@ environ["RAGAS_DO_NOT_TRACK"] = "true"
 from openai import AsyncOpenAI
 from ragas import Dataset, experiment
 from ragas.cache import DiskCacheBackend
+from ragas.embeddings.base import embedding_factory
 from ragas.llms import llm_factory
 from ragas.metrics.collections import (
     AnswerCorrectness,
@@ -56,6 +57,7 @@ def parse_args(
         description=(
             "Оценивает качество ответов RAG-системы с использованием LLM-судьи."
         ),
+        exit_on_error=exit_on_error,
     )
     parser.add_argument(
         "--dataset",
@@ -76,7 +78,7 @@ def parse_args(
         # Валидацию можно добавить, если нужна
         type=lambda x: urlunsplit(urlsplit(x, scheme="http")),
     )
-    return parser.parse_args(args, exit_on_error=exit_on_error)
+    return parser.parse_args(args)
 
 
 @experiment()
@@ -131,7 +133,6 @@ async def run_rag(
         recall: Final = tg.create_task(
             metrics.recall.ascore(
                 user_input=row["user_input"],
-                response=response,
                 reference=row["reference"],
                 retrieved_contexts=contexts,
             )
@@ -157,23 +158,25 @@ async def run_rag(
 def main() -> None:
     """Точка входа в скрипт. Собирает аргументы и запускает проверку RAG."""
     args: Final = parse_args(None)
-    dataset: Final = Dataset(
+    dataset: Final[Dataset[Dataset.DATATABLE_TYPE]] = Dataset(
         name=args.dataset.stem,
         backend="local/csv",
         root_dir=args.dataset.parent,
     )
+    client: Final = AsyncOpenAI(base_url=args.address, api_key="ollama")
     llm: Final = llm_factory(
         args.model,
         # FIXME: какой формат? OpenAI?
-        client=AsyncOpenAI(base_url=args.address, api_key="ollama"),
+        client=client,
         cache=DiskCacheBackend(str(Path(__file__).parents[2] / ".ragas_cache")),
     )
+    embeddings: Final = embedding_factory(client=client)
     asyncio.run(
         run_rag.arun(
             dataset,
             metrics=MetricGroup(
                 AnswerCorrectness(llm=llm),
-                AnswerRelevancy(llm=llm),
+                AnswerRelevancy(llm=llm, embeddings=embeddings),
                 ContextPrecision(llm=llm),
                 ContextRecall(llm=llm),
                 Faithfulness(llm=llm),
