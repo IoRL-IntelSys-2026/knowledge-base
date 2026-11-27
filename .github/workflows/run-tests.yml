@@ -45,11 +45,9 @@ jobs:
         echo "::add-matcher::.github/mypy.json"
         mypy --strict .
         echo "::remove-matcher owner=mypy::"
-      continue-on-error: true
     - name: Lint with ruff
       run: |
         ruff check --output-format=github .
-      continue-on-error: true
     - name: Find formatting issues
       run: |
         ruff format --diff .
