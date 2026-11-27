@@ -39,7 +39,7 @@ jobs:
         pip install -r requirements.txt --only-binary :all: --require-hashes
     - name: Install development dependencies
       run: |
-        pip install -r dev-requirements.txt --only-binary :all: --require-hashes
+        python -m pip install --only-binary :all: --ignore-installed --dry-run --quiet --report - mypy ruff pytest build | python -c "import sys;import json;a=json.loads(sys.stdin.read());print('\\n'.join(f\"{o['metadata']['name']} == {o['metadata']['version']} \\\\\\n--hash=sha256:{o['download_info']['archive_info']['hashes']['sha256']}\" for o in a['install']))"
     - name: Typecheck with mypy
       run: |
         echo "::add-matcher::.github/mypy.json"
