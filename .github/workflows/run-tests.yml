@@ -1,0 +1,67 @@
+name: Test Python application
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  merge_group:
+    types: [ "checks_requested" ]
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  run-tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - name: Set up Python 3.13
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.13"
+        cache: "pip"
+    - name: Cache tool cache directories
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ./.mypy_cache
+          ./.pytest_cache
+          ./.ruff_cache
+        key: ${{ runner.os }}-mypy-ruff-pytest-${{ hashFiles('**/*.py') }}
+        restore-keys: |
+          ${{ runner.os }}-mypy-ruff-pytest-
+    - name: Install app dependencies
+      run: |
+        pip install --upgrade pip
+        # All dependencies should be pinned to hashes
+        pip install -r requirements.txt --only-binary :all: --require-hashes
+    - name: Install development dependencies
+      run: |
+        pip install -r dev-requirements.txt --only-binary :all: --require-hashes
+    - name: Typecheck with mypy
+      run: |
+        echo "::add-matcher::.github/mypy.json"
+        mypy --strict .
+        echo "::remove-matcher owner=mypy::"
+    - name: Lint with ruff
+      run: |
+        ruff check --output-format=github .
+    - name: Find formatting issues
+      run: |
+        ruff format --diff .
+      continue-on-error: true
+    - name: Test with pytest
+      run: |
+        python -X dev -m pytest .
+        # Enables Development Mode for warnings from Python itself
+    - name: Check that the package builds correctly
+      run: |
+        mkdir dist
+        log="$(pip wheel --no-deps -w ./dist . | tail -n 3)"
+        fname="${log% size=*}"
+        fname="${fname##*filename=}"
+        pip install "dist/$fname"
+        # Test that the script exists
+        rag-evaluator --help
