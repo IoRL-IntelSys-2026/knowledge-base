@@ -10,7 +10,7 @@ from typing import Final, NamedTuple, cast
 environ["RAGAS_DO_NOT_TRACK"] = "true"
 
 from openai import AsyncOpenAI
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, TypeAdapter
 from ragas import Dataset, experiment
 from ragas.cache import DiskCacheBackend
 from ragas.embeddings.base import BaseRagasEmbedding, embedding_factory
@@ -66,7 +66,8 @@ def parse_args(
     argparse.Namespace
         Именное пространство с обработанными аргументами.
     """
-    parser = argparse.ArgumentParser(
+    adapter: Final = TypeAdapter(ModelServerURL)
+    parser: Final = argparse.ArgumentParser(
         description=(
             "Оценивает качество ответов RAG-системы с использованием LLM-судьи."
         ),
@@ -88,7 +89,7 @@ def parse_args(
     parser.add_argument(
         "--address",
         help="Адрес LLM-интерфейса.",
-        type=lambda x: ModelServerURL(url=x).url,
+        type=lambda x: adapter.validate_python(x).url,
     )
     return parser.parse_args(args)
 
