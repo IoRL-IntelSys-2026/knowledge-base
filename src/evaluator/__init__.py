@@ -89,7 +89,7 @@ def parse_args(
     parser.add_argument(
         "--address",
         help="Адрес LLM-интерфейса.",
-        type=lambda x: adapter.validate_python(x).url,
+        type=lambda x: str(adapter.validate_python(x).url),
     )
     return parser.parse_args(args)
 
