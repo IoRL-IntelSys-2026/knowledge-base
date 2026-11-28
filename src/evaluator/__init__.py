@@ -6,12 +6,11 @@ import datetime as dt
 from os import environ
 from pathlib import Path
 from typing import Final, NamedTuple, cast
-from urllib.parse import urlsplit, urlunsplit
 
 environ["RAGAS_DO_NOT_TRACK"] = "true"
 
 from openai import AsyncOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from ragas import Dataset, experiment
 from ragas.cache import DiskCacheBackend
 from ragas.embeddings.base import BaseRagasEmbedding, embedding_factory
@@ -40,6 +39,12 @@ class EvalRow(BaseModel):
 
     user_input: str
     reference: str
+
+
+class ModelServerURL(BaseModel):
+    """Адрес сервера с моделью-судьёй."""
+
+    url: HttpUrl
 
 
 def parse_args(
@@ -83,15 +88,14 @@ def parse_args(
     parser.add_argument(
         "--address",
         help="Адрес LLM-интерфейса.",
-        # Валидацию можно добавить, если нужна
-        type=lambda x: urlunsplit(urlsplit(x, scheme="http")),
+        type=lambda x: ModelServerURL(url=x).url,
     )
     return parser.parse_args(args)
 
 
 @experiment()
 async def run_rag(
-    row: dict[str, str], model_name: str, metrics: MetricGroup, timestamp: str
+    row: EvalRow, model_name: str, metrics: MetricGroup, timestamp: str
 ) -> dict[str, float | str]:
     """Проверяет ответ RAG-системы.
 
@@ -120,40 +124,41 @@ async def run_rag(
     async with asyncio.TaskGroup() as tg:
         correctness: Final = tg.create_task(
             metrics.correctness.ascore(
-                user_input=row["user_input"],
+                user_input=row.user_input,
                 response=response,
-                reference=row["reference"],
+                reference=row.reference,
             )
         )
         relevancy: Final = tg.create_task(
             metrics.relevancy.ascore(
-                user_input=row["user_input"],
+                user_input=row.user_input,
                 response=response,
             )
         )
         precision: Final = tg.create_task(
             metrics.precision.ascore(
-                user_input=row["user_input"],
-                reference=row["reference"],
+                user_input=row.user_input,
+                reference=row.reference,
                 retrieved_contexts=contexts,
             )
         )
         recall: Final = tg.create_task(
             metrics.recall.ascore(
-                user_input=row["user_input"],
-                reference=row["reference"],
+                user_input=row.user_input,
+                reference=row.reference,
                 retrieved_contexts=contexts,
             )
         )
         faithfulness: Final = tg.create_task(
             metrics.faithfulness.ascore(
-                user_input=row["user_input"],
+                user_input=row.user_input,
                 response=response,
                 retrieved_contexts=contexts,
             )
         )
     return {
-        **row,
+        "user_input": row.user_input,
+        "reference": row.reference,
         "correctness": correctness.result().value,
         "relevancy": relevancy.result().value,
         "precision": precision.result().value,
