@@ -104,7 +104,7 @@ async def run_rag(
 
     Parameters
     ----------
-    row : dict of {str : str}
+    row : EvalRow
         Текущий вопрос и эталонный ответ из датасета.
     model_name : str
         Имя тестируемой RAG-системы, используется в имени файла
